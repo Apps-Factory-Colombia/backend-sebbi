@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.api.routes import questions, pdf, auth, documents
@@ -9,6 +9,24 @@ app = FastAPI(
     version=settings.VERSION,
     debug=settings.DEBUG
 )
+
+# Middleware personalizado para manejar OPTIONS requests
+@app.middleware("http")
+async def cors_handler(request: Request, call_next):
+    if request.method == "OPTIONS":
+        response = Response()
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, Accept, Origin, X-Requested-With, Access-Control-Request-Method, Access-Control-Request-Headers"
+        response.headers["Access-Control-Max-Age"] = "86400"
+        response.status_code = 200
+        return response
+    
+    response = await call_next(request)
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, Accept, Origin, X-Requested-With, Access-Control-Request-Method, Access-Control-Request-Headers"
+    return response
 
 # Configurar CORS - Optimizado para Vercel
 # En producción (Vercel), permitir todos los orígenes de forma segura
@@ -67,6 +85,19 @@ async def health_check():
         "cors": "enabled",
         "environment": "vercel" if os.getenv("VERCEL") else "local"
     }
+
+# Manejar todas las solicitudes OPTIONS explícitamente
+@app.options("/{full_path:path}")
+async def options_handler(full_path: str):
+    return Response(
+        status_code=200,
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS, PATCH",
+            "Access-Control-Allow-Headers": "Content-Type, Authorization, Accept, Origin, X-Requested-With, Access-Control-Request-Method, Access-Control-Request-Headers",
+            "Access-Control-Max-Age": "86400"
+        }
+    )
 
 if __name__ == "__main__":
     import uvicorn
