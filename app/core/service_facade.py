@@ -55,7 +55,7 @@ class ApplicationFacade:
     
     async def authenticate_and_get_profile(self, email: str, password: str) -> Dict:
         try:
-            auth_result = await self._db_service.login_user(email, password)
+            auth_result = self._db_service.login_user(email, password)
             return {
                 "authenticated": True,
                 "user_data": auth_result,
@@ -70,7 +70,7 @@ class ApplicationFacade:
     
     async def register_new_user(self, name: str, email: str, password: str) -> Dict:
         try:
-            user_result = await self._db_service.register_user(name, email, password)
+            user_result = self._db_service.register_user(name, email, password)
             return {
                 "registered": True,
                 "user_data": user_result,

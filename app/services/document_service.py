@@ -5,7 +5,7 @@ class DocumentService:
     def __init__(self):
         self.client = get_supabase_client()
     
-    async def get_user_by_email(self, email: str) -> Dict:
+    def get_user_by_email(self, email: str) -> Dict:
         """
         Obtiene el ID de usuario a partir de su email
         """
@@ -17,13 +17,13 @@ class DocumentService:
         except Exception as e:
             raise Exception(f"Error al buscar usuario: {str(e)}")
     
-    async def create_document(self, content: str, email: str) -> Dict:
+    def create_document(self, content: str, email: str) -> Dict:
         """
         Crea un nuevo documento
         """
         try:
             # Obtener el ID del usuario por su email
-            user = await self.get_user_by_email(email)
+            user = self.get_user_by_email(email)
             owner_id = user["user_id"]
             
             # Crear el documento
@@ -43,13 +43,13 @@ class DocumentService:
         except Exception as e:
             raise Exception(f"Error al crear documento: {str(e)}")
     
-    async def get_documents_by_email(self, email: str) -> List[Dict]:
+    def get_documents_by_email(self, email: str) -> List[Dict]:
         """
         Obtiene todos los documentos de un usuario
         """
         try:
             # Obtener el ID del usuario por su email
-            user = await self.get_user_by_email(email)
+            user = self.get_user_by_email(email)
             owner_id = user["user_id"]
             
             # Obtener documentos
@@ -59,13 +59,13 @@ class DocumentService:
         except Exception as e:
             raise Exception(f"Error al obtener documentos: {str(e)}")
     
-    async def get_document_by_id(self, document_id: int, email: str) -> Dict:
+    def get_document_by_id(self, document_id: int, email: str) -> Dict:
         """
         Obtiene un documento por su ID y verifica que pertenezca al usuario
         """
         try:
             # Obtener el ID del usuario por su email
-            user = await self.get_user_by_email(email)
+            user = self.get_user_by_email(email)
             owner_id = user["user_id"]
             
             # Obtener el documento
@@ -84,13 +84,13 @@ class DocumentService:
         except Exception as e:
             raise Exception(f"Error al obtener documento: {str(e)}")
     
-    async def update_document(self, document_id: int, content: str, email: str) -> Dict:
+    def update_document(self, document_id: int, content: str, email: str) -> Dict:
         """
         Actualiza un documento
         """
         try:
             # Verificar que el documento exista y pertenezca al usuario
-            await self.get_document_by_id(document_id, email)
+            self.get_document_by_id(document_id, email)
             
             # Actualizar el documento
             data = {
@@ -107,13 +107,13 @@ class DocumentService:
         except Exception as e:
             raise Exception(f"Error al actualizar documento: {str(e)}")
     
-    async def delete_document(self, document_id: int, email: str) -> Dict:
+    def delete_document(self, document_id: int, email: str) -> Dict:
         """
         Elimina un documento
         """
         try:
             # Verificar que el documento exista y pertenezca al usuario
-            document = await self.get_document_by_id(document_id, email)
+            document = self.get_document_by_id(document_id, email)
             
             # Eliminar el documento
             result = self.client.table("documents").delete().eq("id", document_id).execute()

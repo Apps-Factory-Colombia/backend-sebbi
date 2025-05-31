@@ -19,7 +19,7 @@ class SupabaseService:
         _, new_pwdhash = self._hash_password(provided_password, salt)
         return stored_password == new_pwdhash
     
-    async def register_user(self, name: str, email: str, password: str) -> Dict:
+    def register_user(self, name: str, email: str, password: str) -> Dict:
         """
         Registra un nuevo usuario
         """
@@ -55,7 +55,7 @@ class SupabaseService:
         except Exception as e:
             raise Exception(f"Error en Supabase: {str(e)}")
     
-    async def login_user(self, email: str, password: str) -> Dict:
+    def login_user(self, email: str, password: str) -> Dict:
         """
         Autentica a un usuario
         """

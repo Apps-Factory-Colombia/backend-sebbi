@@ -1,18 +1,30 @@
 from fastapi import APIRouter, HTTPException, Path, Query
-from typing import List
+from typing import List, Optional
 from app.models.document import DocumentCreate, DocumentUpdate, DocumentResponse, DocumentDelete, AutocompleteRequest, AutocompleteResponse
 from app.services.document_service import document_service
 from app.core.service_facade import app_facade
 
 router = APIRouter(prefix="/documents", tags=["documents"])
 
-@router.post("/", response_model=DocumentResponse)
+@router.get("/test")
+async def test_documents_endpoint():
+    return {"status": "documents router test OK", "method": "GET"}
+
+@router.get("/simple")
+async def simple_endpoint():
+    return {"message": "endpoint simple sin query params"}
+
+@router.get("/with-param")
+async def with_param_endpoint(email: Optional[str] = Query(None)):
+    return {"message": f"endpoint con param email: {email}"}
+
+@router.post("/create", response_model=DocumentResponse)
 async def create_document(document_data: DocumentCreate):
     """
     Crea un nuevo documento
     """
     try:
-        document = await document_service.create_document(
+        document = document_service.create_document(
             content=document_data.content,
             email=document_data.email
         )
@@ -20,14 +32,31 @@ async def create_document(document_data: DocumentCreate):
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-@router.get("/", response_model=List[DocumentResponse])
-async def get_documents(email: str = Query(..., description="Email del usuario")):
+@router.get("/list")
+async def get_documents_list(email: Optional[str] = Query(None, description="Email del usuario")):
     """
     Obtiene todos los documentos de un usuario
     """
     try:
-        documents = await document_service.get_documents_by_email(email)
-        return documents
+        if not email:
+            raise HTTPException(status_code=400, detail="El parámetro email es requerido")
+        
+        documents = document_service.get_documents_by_email(email)
+        return {"documents": documents, "count": len(documents)}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.get("/all")
+async def get_all_documents(email: Optional[str] = Query(None, description="Email del usuario")):
+    """
+    Endpoint alternativo para obtener todos los documentos
+    """
+    try:
+        if not email:
+            raise HTTPException(status_code=400, detail="El parámetro email es requerido")
+        
+        documents = document_service.get_documents_by_email(email)
+        return {"documents": documents, "count": len(documents)}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -40,7 +69,7 @@ async def get_document(
     Obtiene un documento por su ID
     """
     try:
-        document = await document_service.get_document_by_id(document_id, email)
+        document = document_service.get_document_by_id(document_id, email)
         return document
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -55,7 +84,7 @@ async def update_document(
     Actualiza un documento
     """
     try:
-        document = await document_service.update_document(
+        document = document_service.update_document(
             document_id=document_id,
             content=document_data.content,
             email=email
@@ -73,7 +102,7 @@ async def delete_document(
     Elimina un documento
     """
     try:
-        document = await document_service.delete_document(document_id, email)
+        document = document_service.delete_document(document_id, email)
         return document
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))

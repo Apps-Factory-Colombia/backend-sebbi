@@ -55,10 +55,10 @@ async def cors_handler(request: Request, call_next):
     return response
 
 # Incluir routers
+app.include_router(documents.router, prefix=settings.API_PREFIX)
 app.include_router(auth.router, prefix=settings.API_PREFIX)
 app.include_router(questions.router, prefix=settings.API_PREFIX)
 app.include_router(pdf.router, prefix=settings.API_PREFIX)
-app.include_router(documents.router, prefix=settings.API_PREFIX)
 
 @app.get("/")
 async def root():
@@ -76,6 +76,22 @@ async def health_check():
         "environment": "vercel" if os.getenv("VERCEL") else "local"
     }
 
+# Endpoint para debug de rutas
+@app.get("/debug/routes")
+async def debug_routes():
+    routes_info = []
+    for route in app.routes:
+        if hasattr(route, 'methods') and hasattr(route, 'path'):
+            routes_info.append({
+                "path": route.path,
+                "methods": list(route.methods),
+                "name": getattr(route, 'name', 'unknown')
+            })
+    return {
+        "total_routes": len(routes_info),
+        "routes": routes_info
+    }
+
 # Endpoint específico para debug de documents
 @app.get("/debug/documents")
 async def debug_documents():
@@ -83,7 +99,8 @@ async def debug_documents():
         "endpoint": "/api/v1/documents",
         "methods": ["GET", "POST", "PUT", "DELETE"],
         "status": "active",
-        "cors": "enabled"
+        "cors": "enabled",
+        "router_routes": len(documents.router.routes)
     }
 
 # Manejar todas las solicitudes OPTIONS explícitamente
