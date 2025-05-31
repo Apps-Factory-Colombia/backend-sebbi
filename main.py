@@ -10,41 +10,8 @@ app = FastAPI(
     debug=settings.DEBUG
 )
 
-# Middleware personalizado para manejar OPTIONS requests
-@app.middleware("http")
-async def cors_handler(request: Request, call_next):
-    if request.method == "OPTIONS":
-        response = Response()
-        response.headers["Access-Control-Allow-Origin"] = "*"
-        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
-        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, Accept, Origin, X-Requested-With, Access-Control-Request-Method, Access-Control-Request-Headers"
-        response.headers["Access-Control-Max-Age"] = "86400"
-        response.status_code = 200
-        return response
-    
-    response = await call_next(request)
-    response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
-    response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, Accept, Origin, X-Requested-With, Access-Control-Request-Method, Access-Control-Request-Headers"
-    return response
-
-# Configurar CORS - Optimizado para Vercel
-# En producción (Vercel), permitir todos los orígenes de forma segura
-if os.getenv("VERCEL") == "1" or os.getenv("VERCEL_ENV"):
-    # Configuración para Vercel
-    origins = [
-        "*",  # Permitir todos los orígenes en Vercel
-    ]
-else:
-    # Configuración para desarrollo local
-    origins = [
-        "http://localhost:3000",
-        "http://localhost:3001", 
-        "http://localhost:8080",
-        "http://127.0.0.1:3000",
-        "http://127.0.0.1:8080",
-        "*"  
-    ]
+# Configurar CORS primero - Optimizado para Vercel
+origins = ["*"]
 
 app.add_middleware(
     CORSMiddleware,
@@ -61,8 +28,31 @@ app.add_middleware(
         "Access-Control-Request-Headers",
     ],
     expose_headers=["*"],
-    max_age=86400,  # Cache preflight por 24 horas
+    max_age=86400,
 )
+
+# Middleware personalizado para manejar OPTIONS requests y agregar headers CORS
+@app.middleware("http")
+async def cors_handler(request: Request, call_next):
+    # Manejar preflight OPTIONS requests
+    if request.method == "OPTIONS":
+        response = Response()
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, Accept, Origin, X-Requested-With, Access-Control-Request-Method, Access-Control-Request-Headers"
+        response.headers["Access-Control-Max-Age"] = "86400"
+        response.status_code = 200
+        return response
+    
+    # Procesar request normal
+    response = await call_next(request)
+    
+    # Agregar headers CORS a todas las respuestas
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, Accept, Origin, X-Requested-With, Access-Control-Request-Method, Access-Control-Request-Headers"
+    
+    return response
 
 # Incluir routers
 app.include_router(auth.router, prefix=settings.API_PREFIX)
@@ -84,6 +74,16 @@ async def health_check():
         "status": "ok",
         "cors": "enabled",
         "environment": "vercel" if os.getenv("VERCEL") else "local"
+    }
+
+# Endpoint específico para debug de documents
+@app.get("/debug/documents")
+async def debug_documents():
+    return {
+        "endpoint": "/api/v1/documents",
+        "methods": ["GET", "POST", "PUT", "DELETE"],
+        "status": "active",
+        "cors": "enabled"
     }
 
 # Manejar todas las solicitudes OPTIONS explícitamente
