@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Path, Query
 from typing import List
 from app.models.document import DocumentCreate, DocumentUpdate, DocumentResponse, DocumentDelete, AutocompleteRequest, AutocompleteResponse
 from app.services.document_service import document_service
-from app.services.gemini_service import gemini_service
+from app.core.service_facade import app_facade
 
 router = APIRouter(prefix="/documents", tags=["documents"])
 
@@ -85,7 +85,11 @@ async def autocomplete_text_document(request_data: AutocompleteRequest):
     El texto puede ser un título o un párrafo.
     """
     try:
-        autocompleted_text = await gemini_service.autocomplete_text(request_data.text_input)
-        return AutocompleteResponse(autocompleted_text=autocompleted_text)
+        result = await app_facade.complete_user_workflow(request_data.text_input)
+        
+        if result["status"] == "error":
+            raise HTTPException(status_code=500, detail=result["completion"])
+            
+        return AutocompleteResponse(autocompleted_text=result["completion"])
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al autocompletar el texto: {str(e)}") 

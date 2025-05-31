@@ -1,28 +1,36 @@
 from fastapi import APIRouter, HTTPException, Depends
 from app.models.auth import UserCreate, UserLogin, UserResponse, TokenResponse
-from app.services.supabase_service import supabase_service
+from app.core.service_facade import app_facade
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 @router.post("/signup", response_model=UserResponse)
 async def signup(user_data: UserCreate):
     try:
-        user = await supabase_service.register_user(
+        result = await app_facade.register_new_user(
             name=user_data.name,
             email=user_data.email,
             password=user_data.password
         )
-        return user
+        
+        if not result["registered"]:
+            raise HTTPException(status_code=400, detail=result["error"])
+            
+        return result["user_data"]
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.post("/login", response_model=TokenResponse)
 async def login(user_data: UserLogin):
     try:
-        token_data = await supabase_service.login_user(
+        result = await app_facade.authenticate_and_get_profile(
             email=user_data.email,
             password=user_data.password
         )
-        return token_data
+        
+        if not result["authenticated"]:
+            raise HTTPException(status_code=401, detail=result["error"])
+            
+        return result["user_data"]
     except Exception as e:
         raise HTTPException(status_code=401, detail=str(e))
